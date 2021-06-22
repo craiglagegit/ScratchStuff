@@ -1,0 +1,51 @@
+# Build the bias calibs:
+
+pipetask run -j 9 -d "detector IN (0,1,2,3,4,5,6,7,8) AND exposure IN (2021040200020, 2021040200021, 2021040200022, 2021040200023, 2021040200024) AND instrument='LSSTComCam' " -b /repo/main/butler.yaml -i LSSTComCam/raw/all -o u/cslage/bias_20210402 -p /project/cslage/ComCam/pipelines/cpBias.yaml --register-dataset-types
+
+# Ingest the bias calibs:
+
+butler certify-calibrations /repo/main u/cslage/bias_20210402 LSSTComCam/calib/u/cslage/20210402A --begin-date 1980-01-01 --end-date 2050-01-01 bias
+
+# Build the dark calibs:
+
+pipetask run -j 9 -d "detector IN (0,1,2,3,4,5,6,7,8) AND exposure IN (2021040200005,2021040200006,2021040200007,2021040200008,2021040200009) AND instrument='LSSTComCam' " -b /repo/main/butler.yaml -i LSSTComCam/raw/all,LSSTComCam/calib,LSSTComCam/calib/u/cslage/20210402A -o u/cslage/dark_20210402A -p /project/cslage/ComCam/pipelines/cpDark.yaml --register-dataset-types
+
+# Ingest the dark calibs:
+
+butler certify-calibrations /repo/main u/cslage/dark_20210402A LSSTComCam/calib/u/cslage/20210402A  --begin-date 1980-01-01 --end-date 2050-01-01 dark
+
+# Build the flat calibs:
+
+pipetask run -j 9 -d "detector IN (0,1,2,3,4,5,6,7,8) AND exposure IN (2021040200015,2021040200016,2021040200017,2021040200018,2021040200019) AND instrument='LSSTComCam' " -b /repo/main/butler.yaml -i LSSTComCam/raw/all,LSSTComCam/calib,LSSTComCam/calib/u/cslage/20210402A -o u/cslage/flat_20210402A -p /project/cslage/ComCam/pipelines/cpFlat.yaml --register-dataset-types
+
+# Ingest the flat calibs:
+
+butler certify-calibrations /repo/main u/cslage/flat_20210402A LSSTComCam/calib/u/cslage/20210402A  --begin-date 1980-01-01 --end-date 2050-01-01 flat
+
+# Build the defect calibs:
+
+pipetask run -j 9 -d "detector IN (0,1,2,3,4,5,6,7,8) AND instrument='LSSTComCam' AND exposure IN (2021040200005,2021040200006,2021040200007,2021040200008,2021040200009,2021040200015,2021040200016,2021040200017,2021040200018,2021040200019) " -b /repo/main -i LSSTComCam/raw/all,LSSTComCam/calib,LSSTComCam/calib/u/cslage/20210402A -o u/cslage/defect_20210402A -p /project/cslage/ComCam/pipelines/findDefects.yaml --register-dataset-types
+
+# Ingest the defect calibs:
+
+butler certify-calibrations /repo/main u/cslage/defect_20210402A LSSTComCam/calib/u/cslage/20210402A  --begin-date 1980-01-01 --end-date 2050-01-01 defects
+
+# Run the PTC:
+
+pipetask run -j 9 -d "detector IN (0,1,2,3,4,5,6,7,8) AND instrument='LSSTComCam' AND exposure IN (2021040200025,2021040200026,2021040200027,2021040200028,2021040200029,2021040200030,2021040200031,2021040200032,2021040200033,2021040200034,2021040200035,2021040200036,2021040200037,2021040200038,2021040200039,2021040200040,2021040200041,2021040200042,2021040200043,2021040200044,2021040200045,2021040200046,2021040200047,2021040200048) " -b /repo/main -i LSSTComCam/raw/all,LSSTComCam/calib,LSSTComCam/calib/u/cslage/20210402A -o u/cslage/ptc_20210402A -p /project/cslage/ComCam/pipelines/measurePhotonTransferCurve.yaml --register-dataset-types
+
+# Plot the PTC (need to run this 9 times, once for each detector, changing both detNum and R22_Sxx):
+
+plotPhotonTransferCurve.py /repo/main/u/cslage/ptc_20210402A/20210407T191210Z/ptc/ptc_LSSTComCam_R22_S11_u_cslage_ptc_20210402A_20210407T191210Z.fits --detNum 4 --outDir /repo/main/u/cslage/ptc_20210402A/plots
+
+# Ingest the PTC
+
+butler certify-calibrations /repo/main u/cslage/ptc_20210402A LSSTComCam/calib/u/cslage/20210402A  --begin-date 1980-01-01 --end-date 2050-01-01 ptc
+
+# Run the BFK creation
+
+pipetask run -j 9 -d "detector IN (0,1,2,3,4,5,6,7,8) AND instrument='LSSTComCam' AND exposure IN (2021040200025)" -b /repo/main -i LSSTComCam/raw/all,LSSTComCam/calib/,LSSTComCam/calib/u/cslage/20210402A  -o u/cslage/bfk_20210402A -p /project/cslage/ComCam/pipelines/cpBfkSolve.yaml --register-dataset-types
+
+# Ingest the BFK
+
+butler certify-calibrations /repo/main u/cslage/bfk_20210402A LSSTComCam/calib/u/cslage/20210402A  --begin-date 1980-01-01 --end-date 2050-01-01 bfk
